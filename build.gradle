@@ -1,0 +1,88 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'org.springframework.boot' version '3.5.13'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.first-ticket'
+version = '0.0.1-SNAPSHOT'
+description = 'common-messaging'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+bootJar { enabled = false }
+jar {
+    enabled = true
+    archiveClassifier.set('')
+}
+
+def env = [:]
+def envFile = rootProject.file(".env")
+if (envFile.exists()) {
+    envFile.eachLine { line ->
+        if (line && !line.startsWith("#") && line.contains("=")) {
+            def (key, value) = line.split("=", 2)
+            env[key.trim()] = value.trim()
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'GitHubPackages'
+        url = 'https://maven.pkg.github.com/first-ticket/common'
+        credentials {
+            username = env['GITHUB_USER']
+            password = env['GITHUB_TOKEN']
+        }
+    }
+}
+
+dependencies {
+    api 'com.first-ticket:common:0.0.2-SNAPSHOT'
+    api 'org.springframework.kafka:spring-kafka'
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'com.querydsl:querydsl-apt:5.0.0:jakarta'
+    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = 'https://maven.pkg.github.com/first-ticket/common-messaging'
+            credentials {
+                username = env['GITHUB_USER']
+                password = env['GITHUB_TOKEN']
+            }
+        }
+    }
+}
+
+def querydslDir = layout.buildDirectory.dir("generated/querydsl").get().asFile
+
+sourceSets {
+    main.java.srcDirs += [querydslDir]
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.getGeneratedSourceOutputDirectory().set(querydslDir)
+}
+
+clean {
+    delete querydslDir
+}
