@@ -8,9 +8,9 @@ import java.util.UUID;
 
 public interface OutboxRepository extends JpaRepository<Outbox, UUID> {
 
-    List<Outbox> findByStatus(OutboxStatus status);
-
     Optional<Outbox> findByCorrelationIdAndEventType(String correlationId, String eventType);
 
     boolean existsByCorrelationIdAndEventType(String correlationId, String eventType);
+
+    List<Outbox> findByStatusInAndRetryCountLessThan(List<OutboxStatus> statuses, int retryCount);
 }
