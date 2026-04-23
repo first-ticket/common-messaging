@@ -44,6 +44,10 @@ repositories {
     }
 }
 
+ext {
+    set('springCloudVersion', "2025.0.2")
+}
+
 dependencies {
     api 'com.first-ticket:common:0.0.2-SNAPSHOT'
     api 'org.springframework.kafka:spring-kafka'
@@ -70,6 +74,12 @@ publishing {
                 password = env['GITHUB_TOKEN']
             }
         }
+    }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
     }
 }
 
