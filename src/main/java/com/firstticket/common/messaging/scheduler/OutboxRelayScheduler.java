@@ -22,7 +22,7 @@ public class OutboxRelayScheduler {
 
     private static final int MAX_RETRY_COUNT = 3;
 
-    @Scheduled(fixedDelay = 10000)
+    @Scheduled(fixedDelayString = "${common.messaging.scheduler.delay:10000}")
     public void relay() {
         List<Outbox> targets = outboxRepository.findByStatusInAndRetryCountLessThan(
             List.of(OutboxStatus.PENDING, OutboxStatus.FAILED),

@@ -10,6 +10,7 @@ import com.firstticket.common.messaging.scheduler.MessagingCleanupScheduler;
 import com.firstticket.common.messaging.scheduler.OutboxRelayScheduler;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -42,6 +43,7 @@ public class CommonMessagingAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(value = "common.messaging.scheduler.enabled", havingValue = "true", matchIfMissing = true)
     public OutboxRelayScheduler outboxRelayScheduler(
         OutboxRepository outboxRepository,
         KafkaTemplate<String, String> kafkaTemplate,
