@@ -172,6 +172,36 @@ public void consume(ConsumerRecord<String, String> record, Acknowledgment ack) {
 
 ---
 
+## ⚙️ 아웃박스 스케줄러 설정
+
+아웃박스 스케줄러의 활성화 여부와 실행 주기를 외부 설정으로 제어할 수 있습니다.
+
+| 설정 키 | 기본값     | 설명 |
+|---------|---------|------|
+| `common.messaging.scheduler.enabled` | `true`  | 스케줄러 활성화 여부 |
+| `common.messaging.scheduler.delay` | `10000` | 스케줄러 실행 주기 (ms) |
+
+```yaml
+# 로컬 개발환경에서 스케줄러 비활성화 예시
+common:
+  messaging:
+    scheduler:
+      enabled: false
+
+# 스케줄러 활성화는 하고 실행 주기만 설정하는 경우
+common:
+  messaging:
+    scheduler:
+      enabled: true
+      delay: 60000 # 1분
+
+```
+
+> - `enabled: false` 시 스케줄러 빈이 등록되지 않아 SELECT 쿼리가 실행되지 않습니다.
+> - `enabled: true` 시 `delay` 값(ms)으로 실행 주기를 조절할 수 있습니다.
+
+---
+
 ## 🗑️ 데이터 정리
 
 오래된 Outbox/Inbox 데이터는 스케줄러가 자동으로 삭제합니다.
