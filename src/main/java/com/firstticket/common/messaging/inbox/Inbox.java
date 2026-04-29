@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Persistable;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -19,7 +20,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class Inbox {
+public class Inbox implements Persistable<UUID> {
 
     @Id
     @Column(name = "message_id")
@@ -30,5 +31,10 @@ public class Inbox {
 
     public static Inbox create(UUID id) {
         return new Inbox(id, LocalDateTime.now());
+    }
+
+    @Override
+    public boolean isNew() {
+        return true;
     }
 }
