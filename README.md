@@ -84,11 +84,12 @@ messaging:
 
 <br>
 
-⚠️ Outbox 또는 Inbox를 활성화하는 경우 각 서비스 `Application` 클래스에서 해당 패키지를 `@EntityScan`, `@EnableJpaRepositories`에 명시해야 합니다.
+⚠️ Outbox 또는 Inbox를 활성화하는 경우 각 서비스에 `JpaConfig`를 생성하여 해당 패키지를 `@EntityScan`, `@EnableJpaRepositories`에 명시해야 합니다.  
+`@SpringBootApplication`에 직접 선언하면 `@WebMvcTest` 슬라이스 테스트에서 JPA 컨텍스트 충돌이 발생합니다.
 
 - Outbox만 사용하는 서비스
-    ```java
-    @SpringBootApplication
+```java
+    @Configuration
     @EntityScan(basePackages = {
         "com.firstticket.sampleservice",           // 각 서비스 스캔 범위
         "com.firstticket.common.messaging.outbox"  // Outbox
@@ -97,12 +98,12 @@ messaging:
         "com.firstticket.sampleservice",
         "com.firstticket.common.messaging.outbox"
     })
-    public class SampleServiceApplication { ... }
-    ```
+    public class JpaConfig {}
+```
 
 - Inbox만 사용하는 서비스
-    ```java
-    @SpringBootApplication
+```java
+    @Configuration
     @EntityScan(basePackages = {
         "com.firstticket.sampleservice",          // 각 서비스 스캔 범위
         "com.firstticket.common.messaging.inbox"  // Inbox
@@ -111,12 +112,12 @@ messaging:
         "com.firstticket.sampleservice",
         "com.firstticket.common.messaging.inbox"
     })
-    public class SampleServiceApplication { ... }
-    ```
+    public class JpaConfig {}
+```
 
 - 둘 다 사용하는 서비스
-    ```java
-    @SpringBootApplication
+```java
+    @Configuration
     @EntityScan(basePackages = {
         "com.firstticket.sampleservice",    // 각 서비스 스캔 범위
         "com.firstticket.common.messaging"  // Outbox + Inbox
@@ -125,8 +126,8 @@ messaging:
         "com.firstticket.sampleservice",
         "com.firstticket.common.messaging"
     })
-    public class SampleServiceApplication { ... }
-    ```
+    public class JpaConfig {}
+```
 
 
 ### Kafka 설정
