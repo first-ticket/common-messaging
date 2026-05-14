@@ -6,10 +6,12 @@ import com.firstticket.common.messaging.event.OutboxEventListener;
 import com.firstticket.common.messaging.event.OutboxTransactionHandler;
 import com.firstticket.common.messaging.inbox.InboxRepository;
 import com.firstticket.common.messaging.outbox.OutboxRepository;
-import com.firstticket.common.messaging.scheduler.MessagingCleanupScheduler;
+import com.firstticket.common.messaging.scheduler.InboxCleanupScheduler;
+import com.firstticket.common.messaging.scheduler.OutboxCleanupScheduler;
 import com.firstticket.common.messaging.scheduler.OutboxRelayScheduler;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
@@ -43,7 +45,10 @@ public class CommonMessagingAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(value = "common.messaging.scheduler.enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperties({
+        @ConditionalOnProperty(name = "messaging.outbox.enabled", havingValue = "true", matchIfMissing = false),
+        @ConditionalOnProperty(name = "messaging.outbox.scheduler.enabled", havingValue = "true", matchIfMissing = true)
+    })
     public OutboxRelayScheduler outboxRelayScheduler(
         OutboxRepository outboxRepository,
         KafkaTemplate<String, String> kafkaTemplate,
@@ -57,7 +62,14 @@ public class CommonMessagingAutoConfiguration {
     }
 
     @Bean
-    public MessagingCleanupScheduler messagingCleanupScheduler(JPAQueryFactory queryFactory) {
-        return new MessagingCleanupScheduler(queryFactory);
+    @ConditionalOnProperty(name = "messaging.outbox.enabled", havingValue = "true", matchIfMissing = false)
+    public OutboxCleanupScheduler outboxCleanupScheduler(JPAQueryFactory queryFactory) {
+        return new OutboxCleanupScheduler(queryFactory);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "messaging.inbox.enabled", havingValue = "true", matchIfMissing = false)
+    public InboxCleanupScheduler inboxCleanupScheduler(JPAQueryFactory queryFactory) {
+        return new InboxCleanupScheduler(queryFactory);
     }
 }

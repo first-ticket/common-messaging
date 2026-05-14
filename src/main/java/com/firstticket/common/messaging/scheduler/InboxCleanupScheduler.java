@@ -13,20 +13,9 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @RequiredArgsConstructor
-public class MessagingCleanupScheduler {
+public class InboxCleanupScheduler {
 
     private final JPAQueryFactory queryFactory;
-
-    @Transactional
-    @Scheduled(cron = "0 0 3 * * *")
-    public void cleanupOutbox() {
-        long deleted = queryFactory
-            .delete(QOutbox.outbox)
-            .where(QOutbox.outbox.status.eq(OutboxStatus.PUBLISHED)
-                .and(QOutbox.outbox.publishedAt.before(LocalDateTime.now().minusWeeks(1L))))
-            .execute();
-        log.info("[Outbox] {}건 삭제 완료", deleted);
-    }
 
     @Transactional
     @Scheduled(cron = "0 0 4 * * *")
