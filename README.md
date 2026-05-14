@@ -10,6 +10,7 @@ Outbox/Inbox 패턴으로 메시지 유실과 중복 처리를 방지합니다.
 | 버전 | 변경 내용 |
 |------|-----------|
 | `0.0.1-SNAPSHOT` | • Outbox/Inbox 패턴 구현<br>• 멱등성 처리 (`@IdempotentConsumer`)<br>• 재시도 스케줄러 (`OutboxRelayScheduler`)<br>• 데이터 정리 스케줄러 (`MessagingCleanupScheduler`) |
+| `0.0.2-SNAPSHOT` | • Outbox/Inbox 선택적 활성화 지원 (`messaging.outbox.enabled`, `messaging.inbox.enabled`)<br>• `MessagingCleanupScheduler` → `OutboxCleanupScheduler` / `InboxCleanupScheduler` 분리<br>• `OutboxRelayScheduler` 활성화 조건에 `messaging.outbox.enabled` 추가 |
 
 ---
 
@@ -18,7 +19,7 @@ Outbox/Inbox 패턴으로 메시지 유실과 중복 처리를 방지합니다.
 > 배포 방법 및 의존성 추가는 [common README](https://github.com/first-ticket/common)를 참고해주세요.
 
 ```groovy
-implementation 'com.first-ticket:common-messaging:0.0.1-SNAPSHOT'
+implementation 'com.first-ticket:common-messaging:0.0.2-SNAPSHOT'
 ```
 
 ---
@@ -45,12 +46,90 @@ com.firstticket.common.messaging
 │   └── IdempotentAspect.java              ← AOP 중복 수신 처리
 └── scheduler
     ├── OutboxRelayScheduler.java          ← PENDING/FAILED 재시도 (10초)
-    └── MessagingCleanupScheduler.java     ← 오래된 데이터 삭제 (매일)
+    ├── OutboxCleanupScheduler.java        ← Outbox 오래된 데이터 삭제 (매일)
+    └── InboxCleanupScheduler.java         ← Inbox 오래된 데이터 삭제 (매일)
 ```
 
 ---
 
 ## ⚙️ 설정
+
+### Outbox/Inbox 활성화
+
+Outbox/Inbox는 기본적으로 비활성화 상태입니다. 사용하는 서비스에서 명시적으로 활성화해야 합니다.
+
+| 설정 키 | 기본값 | 설명 |
+|---------|--------|------|
+| `messaging.outbox.enabled` | `false` | Outbox 관련 빈 활성화 여부 |
+| `messaging.inbox.enabled` | `false` | Inbox 관련 빈 활성화 여부 |
+
+```yaml
+# Outbox만 사용하는 서비스
+messaging:
+  outbox:
+    enabled: true
+
+# Inbox만 사용하는 서비스
+messaging:
+  inbox:
+    enabled: true
+
+# 둘 다 사용하는 서비스
+messaging:
+  outbox:
+    enabled: true
+  inbox:
+    enabled: true
+```
+
+<br>
+
+⚠️ Outbox 또는 Inbox를 활성화하는 경우 각 서비스 `Application` 클래스에서 해당 패키지를 `@EntityScan`, `@EnableJpaRepositories`에 명시해야 합니다.
+
+- Outbox만 사용하는 서비스
+    ```java
+    @SpringBootApplication
+    @EntityScan(basePackages = {
+        "com.firstticket.sampleservice",           // 각 서비스 스캔 범위
+        "com.firstticket.common.messaging.outbox"  // Outbox
+    })
+    @EnableJpaRepositories(basePackages = {
+        "com.firstticket.sampleservice",
+        "com.firstticket.common.messaging.outbox"
+    })
+    public class SampleServiceApplication { ... }
+    ```
+
+- Inbox만 사용하는 서비스
+    ```java
+    @SpringBootApplication
+    @EntityScan(basePackages = {
+        "com.firstticket.sampleservice",          // 각 서비스 스캔 범위
+        "com.firstticket.common.messaging.inbox"  // Inbox
+    })
+    @EnableJpaRepositories(basePackages = {
+        "com.firstticket.sampleservice",
+        "com.firstticket.common.messaging.inbox"
+    })
+    public class SampleServiceApplication { ... }
+    ```
+
+- 둘 다 사용하는 서비스
+    ```java
+    @SpringBootApplication
+    @EntityScan(basePackages = {
+        "com.firstticket.sampleservice",    // 각 서비스 스캔 범위
+        "com.firstticket.common.messaging"  // Outbox + Inbox
+    })
+    @EnableJpaRepositories(basePackages = {
+        "com.firstticket.sampleservice",
+        "com.firstticket.common.messaging"
+    })
+    public class SampleServiceApplication { ... }
+    ```
+
+
+### Kafka 설정
 
 `application.yml`에 Kafka 설정을 추가합니다.
 
@@ -103,7 +182,7 @@ logging:
 > ```
 > # 로컬 개발 환경
 > KAFKA_BOOTSTRAP_SERVERS=localhost:29092
-> 
+>
 > # 도커 환경
 > KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 > ```
@@ -176,25 +255,27 @@ public void consume(ConsumerRecord<String, String> record, Acknowledgment ack) {
 
 아웃박스 스케줄러의 활성화 여부와 실행 주기를 외부 설정으로 제어할 수 있습니다.
 
-| 설정 키 | 기본값     | 설명 |
-|---------|---------|------|
-| `common.messaging.scheduler.enabled` | `true`  | 스케줄러 활성화 여부 |
-| `common.messaging.scheduler.delay` | `10000` | 스케줄러 실행 주기 (ms) |
+| 설정 키 | 기본값 | 설명 |
+|---------|--------|------|
+| `messaging.outbox.scheduler.enabled` | `true` | 스케줄러 활성화 여부 |
+| `messaging.outbox.scheduler.delay` | `10000` | 스케줄러 실행 주기 (ms) |
+> 아웃박스 스케줄러는 `messaging.outbox.enabled: true` 일 때만 작동하므로 Outbox 미사용 시 별도 설정 불필요
 
 ```yaml
-# 로컬 개발환경에서 스케줄러 비활성화 예시
-common:
-  messaging:
+# 로컬 환경에서 스케줄러 로그 비활성화
+messaging:
+  outbox:
+    enabled: true
     scheduler:
       enabled: false
 
-# 스케줄러 활성화는 하고 실행 주기만 설정하는 경우
-common:
-  messaging:
+# 스케줄러 실행 주기 변경
+messaging:
+  outbox:
+    enabled: true
     scheduler:
       enabled: true
       delay: 60000 # 1분
-
 ```
 
 > - `enabled: false` 시 스케줄러 빈이 등록되지 않아 SELECT 쿼리가 실행되지 않습니다.
