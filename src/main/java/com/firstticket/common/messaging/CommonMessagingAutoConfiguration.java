@@ -28,7 +28,12 @@ public class CommonMessagingAutoConfiguration {
         return new Events();
     }
 
+    // =====================================================
+    // Outbox (messaging.outbox.enabled: true)
+    // =====================================================
+
     @Bean
+    @ConditionalOnProperty(name = "messaging.outbox.enabled", havingValue = "true", matchIfMissing = false)
     public OutboxTransactionHandler outboxTransactionHandler(
         OutboxRepository outboxRepository,
         KafkaTemplate<String, String> kafkaTemplate) {
@@ -36,6 +41,7 @@ public class CommonMessagingAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(name = "messaging.outbox.enabled", havingValue = "true", matchIfMissing = false)
     public OutboxEventListener outboxEventListener(
         OutboxRepository outboxRepository,
         KafkaTemplate<String, String> kafkaTemplate,
@@ -44,6 +50,7 @@ public class CommonMessagingAutoConfiguration {
         return new OutboxEventListener(outboxRepository, kafkaTemplate, outboxTransactionHandler);
     }
 
+    // outbox.enabled: true AND outbox.scheduler.enabled: true (기본값) 시 활성화
     @Bean
     @ConditionalOnProperties({
         @ConditionalOnProperty(name = "messaging.outbox.enabled", havingValue = "true", matchIfMissing = false),
@@ -57,14 +64,19 @@ public class CommonMessagingAutoConfiguration {
     }
 
     @Bean
-    public IdempotentAspect idempotentAspect(InboxRepository inboxRepository) {
-        return new IdempotentAspect(inboxRepository);
-    }
-
-    @Bean
     @ConditionalOnProperty(name = "messaging.outbox.enabled", havingValue = "true", matchIfMissing = false)
     public OutboxCleanupScheduler outboxCleanupScheduler(JPAQueryFactory queryFactory) {
         return new OutboxCleanupScheduler(queryFactory);
+    }
+
+    // =====================================================
+    // Inbox (messaging.inbox.enabled: true 시 활성화)
+    // =====================================================
+
+    @Bean
+    @ConditionalOnProperty(name = "messaging.inbox.enabled", havingValue = "true", matchIfMissing = false)
+    public IdempotentAspect idempotentAspect(InboxRepository inboxRepository) {
+        return new IdempotentAspect(inboxRepository);
     }
 
     @Bean
